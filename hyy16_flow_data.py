@@ -58,8 +58,8 @@ for i in range(40, 340):
 
     df_flow_loaded = pd.read_csv(
         flow_fname, delimiter='\t',
-        names=['time_sec', 'flow_out', 'flow_1',
-               'flow_2', 'flow_3', 'flow_4', 'flow_5'], engine='c')
+        names=['time_sec', 'flow_out', 'flow_ch_1', 'flow_ch_2',
+               'flow_ch_3', 'flow_ch_4', 'flow_ch_5'], engine='c')
 
     if df_flow is None:
         df_flow = df_flow_loaded
@@ -87,6 +87,7 @@ for doy in np.arange(doy_start, doy_end):
         datetime.datetime(2016, 1, 1) +
         datetime.timedelta(doy + 0.5)).strftime('%Y%m%d')
     # gapfilling: to oversample to 0.5 s step and fill by interpolation
+    # no extrapolation is allowed
     # note the gapfilled data are in a numpy array for convenience
     flow_data_gapfilled = np.zeros((24 * 60 * 60 * 2, 7)) * np.nan
     flow_data_gapfilled[:, 0] = np.arange(0, 86400, 0.5) / 86400. + doy
@@ -94,11 +95,12 @@ for doy in np.arange(doy_start, doy_end):
         finite_loc = np.where(np.isfinite(df_flow.iloc[:, col_num].values))[0]
         flow_data_gapfilled[:, col_num] = np.interp(
             flow_data_gapfilled[:, 0], doy_flow[finite_loc],
-            df_flow.iloc[finite_loc, col_num].values)
+            df_flow.iloc[finite_loc, col_num].values,
+            left=np.nan, right=np.nan)
     # downsampling to 1 min step
     df_flow_downsampled = pd.DataFrame(
-        columns=['doy', 'flow_out', 'flow_1', 'flow_2',
-                 'flow_3', 'flow_4', 'flow_5'], dtype=np.float64)
+        columns=['doy', 'flow_out', 'flow_ch_1', 'flow_ch_2',
+                 'flow_ch_3', 'flow_ch_4', 'flow_ch_5'], dtype=np.float64)
     df_flow_downsampled['doy'] = (np.arange(1440) + 0.5) / 1440. + doy
     for row_num in range(df_flow_downsampled.shape[0]):
         for col_num in range(1, 7):
@@ -109,8 +111,8 @@ for doy in np.arange(doy_start, doy_end):
                                         col_num]))
     # '%.6f' is the accuracy of the raw data; round the flow rates
     df_flow_downsampled = df_flow_downsampled.round({
-        'doy': 14, 'flow_out': 6, 'flow_1': 6, 'flow_2': 6, 'flow_3': 6,
-        'flow_4': 6, 'flow_5': 6})
+        'doy': 14, 'flow_out': 6, 'flow_ch_1': 6, 'flow_ch_2': 6,
+        'flow_ch_3': 6, 'flow_ch_4': 6, 'flow_ch_5': 6})
 
     # dump data into csv files; do not output row index
     output_fname = output_dir + '/hyy16_flow_data_' + run_date_str + '.csv'
