@@ -76,8 +76,12 @@ print('%d lines read from flow data.' % df_flow.shape[0])
 doy_flow = timesec_to_doy(df_flow['time_sec'].values)
 
 
-doy_start = np.floor(doy_flow[0])
-# doy_start = np.ceil(doy_flow[-1]) - 7.  # enable to process only recent data
+if preproc_config.run_options['process_recent_period']:
+    doy_start = np.ceil(doy_flow[-1]) - \
+        preproc_config.run_options['traceback_in_days']
+else:
+    doy_start = np.floor(doy_flow[0])
+
 doy_end = np.ceil(doy_flow[-1])
 
 
