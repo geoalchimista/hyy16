@@ -57,7 +57,7 @@ for i in range(40, 340):
         continue
 
     df_flow_loaded = pd.read_csv(
-        flow_fname, delimiter='\t',
+        flow_fname, sep='\t',
         names=['time_sec', 'flow_out', 'flow_ch_1', 'flow_ch_2',
                'flow_ch_3', 'flow_ch_4', 'flow_ch_5'], engine='c')
 
@@ -66,7 +66,7 @@ for i in range(40, 340):
     else:
         df_flow = pd.concat([df_flow, df_flow_loaded], ignore_index=True)
 
-    del(df_flow_loaded)
+    del df_flow_loaded
 
 
 # echo flow data status
@@ -121,11 +121,11 @@ for doy in np.arange(doy_start, doy_end):
     # dump data into csv files; do not output row index
     output_fname = output_dir + '/hyy16_flow_data_' + run_date_str + '.csv'
     df_flow_downsampled.to_csv(output_fname, na_rep='NaN', index=False)
-    print('\n%d lines converted from flow data file(s) on the day %s' %
+    print('\n%d lines converted from flow data file(s) on the day %s.' %
           (df_flow_downsampled.shape[0], run_date_str) +
           '\nDownsampled to 1 min step.\n')
     print(df_flow_downsampled.describe().transpose())
-    del(flow_data_gapfilled, df_flow_downsampled)
+    del flow_data_gapfilled, df_flow_downsampled
 
 
 # echo program ending
