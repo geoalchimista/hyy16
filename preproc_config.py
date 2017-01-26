@@ -11,7 +11,11 @@ data_dir = {
     'sensor_data_reformatted':
     '/Users/wusun/Dropbox/Projects/hyytiala_2016/data/preprocessed/sensor/',
     'met_data':
-    '/Users/wusun/Dropbox/Projects/hyytiala_2016/data/preprocessed/met/'
+    '/Users/wusun/Dropbox/Projects/hyytiala_2016/data/preprocessed/met/',
+    'leaf_area_data_raw':
+    '/Users/wusun/Dropbox/Projects/hyytiala_2016/data/auxiliary/',
+    'leaf_area_data_reformatted':
+    '/Users/wusun/Dropbox/Projects/hyytiala_2016/data/preprocessed/leaf_area/'
 }
 
 run_options = {

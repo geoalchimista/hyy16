@@ -4,7 +4,7 @@ For pre-processing only, not intended for general-purpose use.
 
 Hyytiälä COS campaign, April-November 2016
 
-Copyright 2016 Wu Sun <wu.sun@ucla.edu>
+(c) 2016-2017 Wu Sun <wu.sun@ucla.edu>
 
 Revision history
 ----------------

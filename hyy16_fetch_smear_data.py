@@ -3,7 +3,7 @@ Fetch meteorological data from the SMEAR website and bind them as a CSV table.
 
 Hyytiälä COS campaign, April-November 2016
 
-Copyright 2016 Wu Sun <wu.sun@ucla.edu>
+(c) 2016-2017 Wu Sun <wu.sun@ucla.edu>
 
 """
 import io
