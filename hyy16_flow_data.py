@@ -35,6 +35,37 @@ def timesec_to_doy(ts_array, year=2016):
     return (ts_array - time_sec_current_year) / 86400.
 
 
+def interp_flow_lsc(day_of_year):
+    """
+    Function to interpolate the flow rate of the large soil chamber (SC3)
+
+    Parameters
+    ----------
+    day_of_year : array_like
+        Time in days since Jan 1 00:00 of the year.
+
+    Return
+    ------
+    flow_interp : array_like
+        Interpolated flow rates, in standard liter per minute.
+
+    Measured values
+
+    | datetime                  | doy_int | flow rates |
+    |---------------------------|---------|------------|
+    | 2016-04-21 12:52 (UTC+2)  |   112   |  3.75 slpm |
+    | 2016-07-04 ??             |   186   |  2.65 slpm |
+    | 2016-07-07 11:40 (UTC+2)  |   189   |  3.19 slpm |
+    | 2016-07-07 11:52 (UTC+2)  |   189   |  4.00 slpm |
+
+    """
+    doy_lsc = [111. + 12. / 24. + 52. / 1440., 185.5,
+               188. + 11. / 24. + 40. / 1440., 188. + 11. / 24. + 52. / 1440.]
+    flow_lsc = [3.75, 2.65, 3.19, 4.00]
+    flow_interp = np.interp(day_of_year, doy_lsc, flow_lsc)
+    return flow_interp
+
+
 # echo program starting
 print('Subsetting, gapfilling and downsampling the flow data...')
 dt_start = datetime.datetime.now()
@@ -90,7 +121,7 @@ else:
 
 # convert time variable to day of the year
 doy_flow = timesec_to_doy(df_flow['time_sec'].values)
-doy_int_flow = np.floor(doy_flow).astype(int)  # integer day of year by floor
+doy_int_flow = np.floor(doy_flow).astype(np.int64)  # integer day of year by floor
 
 
 # mask seriously negative flow rates on Aug 27 due to power failure
@@ -105,12 +136,12 @@ for col in ['flow_ch_4', 'flow_ch_5']:
 
 
 if preproc_config.run_options['process_recent_period']:
-    doy_start = np.ceil(doy_flow[-1]).astype(int) - \
+    doy_start = np.ceil(doy_flow[-1]).astype(np.int64) - \
         preproc_config.run_options['traceback_in_days']
 else:
-    doy_start = np.floor(doy_flow[0]).astype(int)
+    doy_start = np.floor(doy_flow[0]).astype(np.int64)
 
-doy_end = np.ceil(doy_flow[-1]).astype(int)
+doy_end = np.ceil(doy_flow[-1]).astype(np.int64)
 
 
 # to bin the data by day, gapfill, and downsample to 1 min step
@@ -157,10 +188,15 @@ for doy in range(doy_start, doy_end):
                 np.nanmean(
                     flow_data_gapfilled[row_num * 120:(row_num + 1) * 120,
                                         col_num]))
+
+    # add `flow_ch_6`, interpolated from manually measured, discrete values
+    df_flow_downsampled['flow_ch_6'] = \
+        interp_flow_lsc(df_flow_downsampled['doy'])
+
     # '%.6f' is the accuracy of the raw data; round the flow rates
     df_flow_downsampled = df_flow_downsampled.round({
         'doy': 14, 'flow_out': 6, 'flow_ch_1': 6, 'flow_ch_2': 6,
-        'flow_ch_3': 6, 'flow_ch_4': 6, 'flow_ch_5': 6})
+        'flow_ch_3': 6, 'flow_ch_4': 6, 'flow_ch_5': 6, 'flow_ch_6': 6})
 
     # dump data into csv files; do not output row index
     output_fname = output_dir + '/hyy16_flow_data_%s.csv' % run_date_str
@@ -175,7 +211,7 @@ for doy in range(doy_start, doy_end):
                          label=col, lw=1.)
         axes[0].legend(loc='upper left', frameon=False, fontsize=10, ncol=3)
 
-        for col in ['flow_ch_4', 'flow_ch_5']:
+        for col in ['flow_ch_4', 'flow_ch_5', 'flow_ch_6']:
             axes[1].plot(time_in_hour, df_flow_downsampled[col].values,
                          label=col, lw=1.)
         axes[1].legend(loc='upper left', frameon=False, fontsize=10, ncol=2)
