@@ -13,7 +13,10 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 import preproc_config  # preprocessing config file, in the same directory
 
+
+# plot settings
 plt.rcParams.update({'mathtext.default': 'regular'})
+plt.rcParams['hatch.color'] = 'w'  # white hatching lines
 plt.style.use('ggplot')
 
 
@@ -136,8 +139,8 @@ for i, ch_label in enumerate(['LC-S-A', 'LC-S-B', 'LC-L-A', 'LC-XL',
         if df_subset['species'].values[k] == 'blank':
             rect.set_hatch('///')
 
-ax.text(295, 6.8, 'Blank test', fontsize=12, color='w',
-        bbox={'facecolor': 'k', 'alpha': 0.75, 'pad': 5, 'hatch': '///'})
+ax.text(295, 6.8, 'Blank test', fontsize=12, color='k',
+        bbox={'facecolor': 'darkgray', 'alpha': 1., 'pad': 5, 'hatch': '///'})
 
 # add description for date
 xax_doy_array = ax.xaxis.get_ticklocs()
@@ -154,10 +157,9 @@ xax_combined_array = list(map(''.join, zip(xax_date_array,
                                            xax_doy_array)))
 ax.xaxis.set_ticklabels(xax_combined_array)
 
-
 fig.tight_layout()
-fig.savefig(preproc_config.data_dir['leaf_area_data_reformatted'] +
-            '/chamber_arrangement.pdf')
+fig.savefig(preproc_config.data_dir['leaf_area_data_raw'] +
+            '/chamber_arrangement.pdf', dpi=150)
 
 
 # echo program ending
