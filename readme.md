@@ -1,10 +1,10 @@
 Ecosystem-Atmosphere Exchange of Carbonyl Sulfide (COS), Hyytiälä, Finland
 
-Wu Sun (wu.sun@ucla)
+Wu Sun (wu.sun@ucla.edu)
 
 This is a code repository for the project.
 
-Warning: Under construction; some scripts may not be able to run. 
+==**Warning: Under construction; some scripts may not be able to run.**==
 
 # Requirements
 
