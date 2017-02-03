@@ -15,7 +15,7 @@ The Anaconda Distribution of Python (https://continuum.io/downloads) is recommen
 
 # What do they do?
 
-`preproc_config.py`: Configuration of preprocessing settings.
+`preproc_config.py`: Configuration of preprocessing settings. **Modify the directories in this script before you run any other script.**
 
 `hyy16_fetch_smear_data.py`: Fetch SMEAR II meteorological data through its offical API portal.
 
