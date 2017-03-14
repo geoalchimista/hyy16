@@ -15,6 +15,12 @@ import pandas as pd
 import preproc_config
 
 
+def timestamp_parser(*args):
+    """A timestamp parser for `pandas.read_csv()`."""
+    return np.datetime64('%s-%s-%s %s:%s:%s' %
+                         args)
+
+
 # echo program starting
 print('Retrieving meteorological data from ' +
       'SMEAR <http://avaa.tdata.fi/web/smart/smear> ... ')
@@ -85,15 +91,16 @@ df_met = pd.DataFrame(columns=colnames)
 
 # an url example
 # url = 'http://avaa.tdata.fi/palvelut/smeardata.jsp?' +
-#       'variable=Pamb0&table=HYY_META&' +
+#       'variables=Pamb0,&table=HYY_META&' +
 #       'from=2016-04-01 00:00:00&to=2016-04-02 00:00:00&'
 #       'quality=ANY&averaging=30MIN&type=ARITHMETIC'
 
 
 flag_timestamp_parsed = False
+
 # fetch and dump data: dump each variable into TXT and combine 'em as CSV
 for var in varnames:
-    print('Fetching variable \'%s\' ...' % var, end=' ')
+    print("Fetching variable '%s' ..." % var, end=' ')
 
     # precipitation must be summed not averaged over the 30 min interval
     if var != 'Precipacc':
@@ -101,8 +108,8 @@ for var in varnames:
     else:
         avg_type = 'SUM'
 
-    url = 'http://avaa.tdata.fi/palvelut/smeardata.jsp?variable=' + var + \
-          '&table=HYY_META&from=' + start_dt + '&to=' + end_dt + \
+    url = 'http://avaa.tdata.fi/palvelut/smeardata.jsp?variables=' + var + \
+          ',&table=HYY_META&from=' + start_dt + '&to=' + end_dt + \
           '&quality=ANY&averaging=30MIN&type=' + avg_type
 
     response = requests.get(url, verify=True)
@@ -115,34 +122,60 @@ for var in varnames:
         print('Successful!')
 
     # reading the response text as data table
-    fetched_data = np.genfromtxt(
-        io.BytesIO(response.text.encode('utf-8')), delimiter='"',
-        dtype=[(var, 'float64'), ('timestamp', 'U30')],
-        usecols=[0, 1], invalid_raise=False)
+    # fetched_data = np.genfromtxt(
+    #     io.BytesIO(response.text.encode('utf-8')), delimiter=',',
+    #     dtype=[(var, 'float64'), ('timestamp', 'U30')],
+    #     usecols=[0, 1], invalid_raise=False)
+    if not flag_timestamp_parsed:
+        fetched_data = pd.read_csv(
+            io.BytesIO(response.text.encode('utf-8')), sep=',', header=0,
+            names=['year', 'month', 'day', 'hour', 'minute', 'second', var],
+            parse_dates={'timestamp': [0, 1, 2, 3, 4, 5]},
+            date_parser=timestamp_parser,
+            engine='c', encoding='utf-8')
+    else:
+        fetched_data = pd.read_csv(
+            io.BytesIO(response.text.encode('utf-8')), sep=',', header=0,
+            names=[var], usecols=[6],
+            parse_dates=False,
+            engine='c', encoding='utf-8')
+
+    # if var == 'Pamb0':
+    #     fetched_data[var][fetched_data[var] == 0.] = np.nan
     if var == 'Pamb0':
-        fetched_data[var][fetched_data[var] == 0.] = np.nan
+        fetched_data.loc[fetched_data[var] == 0., var] = np.nan
+
+    if not flag_timestamp_parsed:
+        # fill timestamps and convert to day of year
+        df_met['timestamp'] = fetched_data['timestamp']
+        flag_timestamp_parsed = True
+        df_met['doy'] = (
+            df_met['timestamp'] -
+            pd.Timestamp('%d-01-01' % fetched_data['timestamp'][0].year)) / \
+            pd.Timedelta(days=1)
+        print('Timestamps parsed.')
 
     df_met[var] = fetched_data[var]
 
-    # fill timestamps and convert to day of year
-    if not flag_timestamp_parsed:
-        df_met['timestamp'] = np.empty(fetched_data.shape[0], dtype=str)
-        for i in range(fetched_data.shape[0]):
-            dt_parsed = datetime.datetime.strptime(
-                fetched_data['timestamp'][i],
-                '%b %d, %Y %I:%M:%S %p')
-            dt_str = str(dt_parsed)
-            doy_converted = (
-                dt_parsed -
-                datetime.datetime(2016, 1, 1)).total_seconds() / 86400.
-            df_met.set_value(i, 'timestamp', "'" + dt_str + "'")
-            # use single quotation mark to enforce timestamp as string
-            df_met.set_value(i, 'doy', doy_converted)
-            del dt_parsed, dt_str, doy_converted
-        else:
-            # if the for-loop executes normally, go on to the else-clause
-            flag_timestamp_parsed = True
-            print('Timestamps parsed.')
+    # # fill timestamps and convert to day of year
+    # if not flag_timestamp_parsed:
+    #     df_met['timestamp'] = np.empty(fetched_data.shape[0], dtype=str)
+    #     for i in range(fetched_data.shape[0]):
+    #         dt_parsed = datetime.datetime.strptime(
+    #             fetched_data['timestamp'][i],
+    #             '%b %d, %Y %I:%M:%S %p')
+    #         dt_str = str(dt_parsed)
+    #         doy_converted = (
+    #             dt_parsed -
+    #             datetime.datetime(2016, 1, 1)).total_seconds() / 86400.
+    #         df_met.set_value(i, 'timestamp', "'" + dt_str + "'")
+    #         # use single quotation mark to enforce timestamp as string
+    #         df_met.set_value(i, 'doy', doy_converted)
+    #         del dt_parsed, dt_str, doy_converted
+    #     else:
+    #         # if the for-loop executes normally, go on to the else-clause
+    #         flag_timestamp_parsed = True
+    #         print('Timestamps parsed.')
 
     del url, response, fetched_data
 
