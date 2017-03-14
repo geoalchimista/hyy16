@@ -18,14 +18,12 @@ The Anaconda Distribution of Python (https://continuum.io/downloads) is recommen
 `preproc_config.py`: Configuration of preprocessing settings. **Modify the directories in this script before you run any other script.**
 
 
-`hyy16_fetch_smear_data.py`: Fetch SMEAR II meteorological data through its official API portal.
-
-Options
+`hyy16_fetch_smear_data.py`: Fetch SMEAR II meteorological data through its official API portal. Optional arguments are
 - `-n`: get the data from the starting date till now. Enable this for daily online processing.
 - `-v`: get one variable at a time, slow mode. Use this if it is too slow to get all the variables in one request.
 
 
-`hyy16_flow_data.py`: Gapfill flow data and subset by day.
+`hyy16_flow_data.py`: Gapfill flow data and subset by day. Optional argument is `-s`, to run in silent mode without printing daily summary.
 
 `hyy16_leaf_area.py`: Interpolate leaf area.
 
@@ -36,3 +34,10 @@ Options
 `hyy16_chdata_proc.py`: Flux calculation. Unable to run yet.
 
 `hyy16_chdata_proc_all.py`: Flux calculation over all the data. Unable to run yet.
+
+# How long it takes to run
+
+These are running times on a quad-core MacBook Pro 15'' (May 2015) model with single thread/process.
+
+- `hyy16_fetch_smear_data.py`: ~ 10 seconds (It may also depend on the bandwidth.)
+- `hyy16_flow_data.py`: ~ 5 minutes without plots

@@ -1,5 +1,5 @@
 """
-Extract, combine, and average flow data.
+Extract, combine, and downsample flow data.
 For pre-processing only, not intended for general-purpose use.
 
 Hyytiälä COS campaign, April-November 2016
@@ -19,12 +19,13 @@ Revision history
 
 """
 import os
+import argparse
 import datetime
+import warnings
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import preproc_config  # preprocessing config file, in the same directory
-import warnings
 
 
 def timesec_to_doy(ts_array, year=2016):
@@ -66,6 +67,15 @@ def interp_flow_lsc(day_of_year):
     return flow_interp
 
 
+# define terminal argument parser
+parser = argparse.ArgumentParser(
+    description='Extract, combine, and downsample flow data.')
+parser.add_argument('-s', '--silent', dest='flag_silent_mode',
+                    action='store_true',
+                    help='silent mode: run without printing daily summary')
+args = parser.parse_args()
+
+
 # echo program starting
 print('Subsetting, gapfilling and downsampling the flow data...')
 dt_start = datetime.datetime.now()
@@ -91,24 +101,25 @@ output_dir = preproc_config.data_dir['flow_data_reformatted']
 
 
 # load all flow data files
-df_flow = None
-for i in range(40, 340):
-    flow_fname = flow_dir + '/data_%d.dat' % i
-    if os.path.isfile(flow_fname) is False:
-        continue
-    # data have no NA values, set `na_filter=False` to improve speed
-    df_flow_loaded = pd.read_csv(
-        flow_fname, sep='\t',
-        names=['time_sec', 'flow_out', 'flow_ch_1', 'flow_ch_2',
-               'flow_ch_3', 'flow_ch_4', 'flow_ch_5'],
-        dtype=np.float64, engine='c', na_filter=False)
+# pandas.concat + list comprehension is 3-5 times faster than previous for-loop
+flow_flist = [flow_dir + '/data_%d.dat' % i for i in range(40, 340)]
+read_csv_options = {
+    'sep': '\t',
+    'names': ['time_sec', 'flow_out', 'flow_ch_1', 'flow_ch_2',
+              'flow_ch_3', 'flow_ch_4', 'flow_ch_5'],
+    'dtype': np.float64,
+    'engine': 'c',
+    'encoding': 'utf-8',
+    'na_filter': False,
+}
+df_flow_loaded = [pd.read_csv(entry, **read_csv_options)
+                  for entry in flow_flist if os.path.isfile(entry)]
+try:
+    df_flow = pd.concat(df_flow_loaded)
+except ValueError:
+    df_flow = None  # if the list to concatenate is empty
 
-    if df_flow is None:
-        df_flow = df_flow_loaded
-    else:
-        df_flow = pd.concat([df_flow, df_flow_loaded], ignore_index=True)
-
-    del df_flow_loaded
+del df_flow_loaded
 
 
 # echo flow data status
@@ -121,7 +132,8 @@ else:
 
 # convert time variable to day of the year
 doy_flow = timesec_to_doy(df_flow['time_sec'].values)
-doy_int_flow = np.floor(doy_flow).astype(np.int64)  # integer day of year by floor
+doy_int_flow = np.floor(doy_flow).astype(np.int64)
+# integer day of year by floor (equivalent to Julian day number - 1)
 
 
 # mask seriously negative flow rates on Aug 27 due to power failure
@@ -181,13 +193,11 @@ for doy in range(doy_start, doy_end):
         columns=['doy', 'flow_out', 'flow_ch_1', 'flow_ch_2',
                  'flow_ch_3', 'flow_ch_4', 'flow_ch_5'], dtype=np.float64)
     df_flow_downsampled['doy'] = (np.arange(1440) + 0.5) / 1440. + doy
-    for row_num in range(df_flow_downsampled.shape[0]):
-        for col_num in range(1, 7):
-            df_flow_downsampled.set_value(
-                row_num, df_flow_downsampled.columns[col_num],
-                np.nanmean(
-                    flow_data_gapfilled[row_num * 120:(row_num + 1) * 120,
-                                        col_num]))
+    # use array broadcasting for averaging/downsampling
+    flow_data_downsampled = \
+        np.nanmean(flow_data_gapfilled.reshape(1440, 120, 7), axis=1)
+    # assign downsampled values to the dataframe
+    df_flow_downsampled.iloc[:, 1:7] = flow_data_downsampled[:, 1:7]
 
     # add `flow_ch_6`, interpolated from manually measured, discrete values
     df_flow_downsampled['flow_ch_6'] = \
@@ -228,10 +238,12 @@ for doy in range(doy_start, doy_end):
         fig.clf()
         del fig, axes
 
-    print('\n%d lines converted from flow data file(s) on the day %s.' %
-          (df_flow_downsampled.shape[0], run_date_str) +
-          '\nDownsampled to 1 min step.\n')
-    print(df_flow_downsampled.describe().transpose())
+    if not args.flag_silent_mode:
+        print('\n%d lines converted from flow data file(s) on the day %s.' %
+              (df_flow_downsampled.shape[0], run_date_str) +
+              '\nDownsampled to 1 min step.\n')
+        print(df_flow_downsampled.describe().transpose())
+
     del flow_data_gapfilled, df_flow_downsampled
 
 

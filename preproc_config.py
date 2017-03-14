@@ -21,12 +21,15 @@ data_dir = {
     '/Users/wusun/Dropbox/Projects/hyytiala_2016/data/auxiliary/',
 
     'leaf_area_data_reformatted':
-    '/Users/wusun/Dropbox/Projects/hyytiala_2016/data/preprocessed/leaf_area/'
+    '/Users/wusun/Dropbox/Projects/hyytiala_2016/data/preprocessed/leaf_area/',
 }
 
 run_options = {
     'process_recent_period': False,
+
     'traceback_in_days': 3,
-    'plot_flow_data': True,
-    'plot_sensor_data': True
+
+    'plot_flow_data': False,
+
+    'plot_sensor_data': True,
 }
