@@ -115,7 +115,7 @@ read_csv_options = {
 df_flow_loaded = [pd.read_csv(entry, **read_csv_options)
                   for entry in flow_flist if os.path.isfile(entry)]
 try:
-    df_flow = pd.concat(df_flow_loaded)
+    df_flow = pd.concat(df_flow_loaded, ignore_index=True)
 except ValueError:
     df_flow = None  # if the list to concatenate is empty
 
