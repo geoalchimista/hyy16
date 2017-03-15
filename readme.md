@@ -16,6 +16,7 @@ The Anaconda Distribution of Python (https://continuum.io/downloads) is recommen
 # What do they do?
 
 `preproc_config.py`: Configuration of preprocessing settings. **Modify the directories in this script before you run any other script.**
+- To configure it for daily online processing, set the key `process_recent_period` in `run_options` to `True`. By default, the processing traces back 3 days in time. This can be configured through the key `traceback_in_days`. 
 
 
 `hyy16_fetch_smear_data.py`: Fetch SMEAR II meteorological data through its official API portal. Optional arguments are
@@ -37,6 +38,7 @@ The Anaconda Distribution of Python (https://continuum.io/downloads) is recommen
 `hyy16_chdata_proc.py`: Flux calculation. Unable to run yet.
 
 `hyy16_chdata_proc_all.py`: Flux calculation over all the data. Unable to run yet.
+
 
 # How long it takes to run
 
