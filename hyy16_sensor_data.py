@@ -23,6 +23,7 @@ Revision history
 - Daily plot option added, which is controlled by the preprocessing config
 
 """
+import argparse
 import glob
 import datetime
 import numpy as np
@@ -39,6 +40,15 @@ def IQR_bounds_func(x):
         return(q1 - 2 * IQR, q3 + 5 * IQR)
     else:
         return(np.nan, np.nan)
+
+
+# define terminal argument parser
+parser = argparse.ArgumentParser(
+    description='Extract, combine, and correct chamber sensor data.')
+parser.add_argument('-s', '--silent', dest='flag_silent_mode',
+                    action='store_true',
+                    help='silent mode: run without printing daily summary')
+args = parser.parse_args()
 
 
 # echo program starting
@@ -81,6 +91,7 @@ else:
     doy_start = 97  # campaign starts on 7 Apr 2016
     doy_end = 315  # campaign ends on 10 Nov 2016 (plus one for `range()`)
 
+year_start = 2016  # starting year for converting day of year values
 
 # data fields in the leaf chamber sensor data file (*.cop)
 # correspondence between chamber number and sensor number was changing
@@ -110,6 +121,10 @@ for doy in range(doy_start, doy_end):
                        'PAR_ch_2': np.float64, 'T_amb': np.float64,
                        'T_ch_1': np.float64, 'T_ch_2': np.float64,
                        'T_ch_3': np.float64},
+                parse_dates={'timestamp': [0]},
+                date_parser=lambda s: np.datetime64(
+                    '%s-%s-%s %s:%s:%s' % (s[0:4], s[4:6], s[6:8],
+                                           s[8:10], s[10:12], s[12:14])),
                 engine='c', na_values='-')
             if df_lc_sensor is None:
                 df_lc_sensor = df_lc_sensor_loaded
@@ -131,6 +146,10 @@ for doy in range(doy_start, doy_end):
                 names=['datetime', 'T_ch_4', 'T_ch_5', 'T_ch_6'],
                 dtype={'datetime': str, 'T_ch_4': np.float64,
                        'T_ch_5': np.float64, 'T_ch_6': np.float64},
+                parse_dates={'timestamp': [0]},
+                date_parser=lambda s: np.datetime64(
+                    '%s-%s-%s %s:%s:%s' % (s[0:4], s[4:6], s[6:8],
+                                           s[8:10], s[10:12], s[12:14])),
                 engine='c')
             if df_sc_sensor is None:
                 df_sc_sensor = df_sc_sensor_loaded
@@ -143,48 +162,58 @@ for doy in range(doy_start, doy_end):
               run_date_str)
         continue
 
+    # convert day of year number
+    doy_lc_sensor = \
+        (df_lc_sensor['timestamp'] - pd.Timestamp('%s-01-01' % year_start)) / \
+        pd.Timedelta(days=1)
+
     # parse datetime strings
-    doy_lc_sensor = np.zeros(df_lc_sensor.shape[0]) * np.nan
-    for i in range(df_lc_sensor.shape[0]):
-        dt_str = df_lc_sensor.loc[i, 'datetime']
-        if len(dt_str) == 14:
-            # accelerate datetime parsing with manual operations
-            dt_converted = datetime.datetime(
-                int(dt_str[0:4]), int(dt_str[4:6]), int(dt_str[6:8]),
-                int(dt_str[8:10]), int(dt_str[10:12]), int(dt_str[12:14]))
-            doy_lc_sensor[i] = \
-                (dt_converted -
-                    datetime.datetime(2016, 1, 1)).total_seconds() / 86400.
-            # doy_lc_sensor[i] = (
-            #     datetime.datetime.strptime(dt_str, '%Y%m%d%H%M%S') -
-            #     datetime.datetime(2016, 1, 1)).total_seconds() / 86400.
-        else:
-            doy_lc_sensor[i] = np.nan
+    # doy_lc_sensor = np.zeros(df_lc_sensor.shape[0]) * np.nan
+    # for i in range(df_lc_sensor.shape[0]):
+    #     dt_str = df_lc_sensor.loc[i, 'datetime']
+    #     if len(dt_str) == 14:
+    #         # accelerate datetime parsing with manual operations
+    #         dt_converted = datetime.datetime(
+    #             int(dt_str[0:4]), int(dt_str[4:6]), int(dt_str[6:8]),
+    #             int(dt_str[8:10]), int(dt_str[10:12]), int(dt_str[12:14]))
+    #         doy_lc_sensor[i] = \
+    #             (dt_converted -
+    #                 datetime.datetime(2016, 1, 1)).total_seconds() / 86400.
+    #         # doy_lc_sensor[i] = (
+    #         #     datetime.datetime.strptime(dt_str, '%Y%m%d%H%M%S') -
+    #         #     datetime.datetime(2016, 1, 1)).total_seconds() / 86400.
+    #     else:
+    #         doy_lc_sensor[i] = np.nan
 
     # indices for insertion, range 0 to 17279
     ind_lc_sensor = (doy_lc_sensor - doy) * 86400. / 5.
-    ind_lc_sensor = np.round(ind_lc_sensor).astype(int)
+    ind_lc_sensor = np.round(ind_lc_sensor).astype(np.int64)
 
-    doy_sc_sensor = np.zeros(df_sc_sensor.shape[0]) * np.nan
-    for i in range(df_sc_sensor.shape[0]):
-        dt_str = df_sc_sensor.loc[i, 'datetime']
-        if len(dt_str) == 14:
-            # accelerate datetime parsing with manual operations
-            dt_converted = datetime.datetime(
-                int(dt_str[0:4]), int(dt_str[4:6]), int(dt_str[6:8]),
-                int(dt_str[8:10]), int(dt_str[10:12]), int(dt_str[12:14]))
-            doy_sc_sensor[i] = \
-                (dt_converted -
-                    datetime.datetime(2016, 1, 1)).total_seconds() / 86400.
-            # doy_sc_sensor[i] = (
-            #     datetime.datetime.strptime(dt_str, '%Y%m%d%H%M%S') -
-            #     datetime.datetime(2016, 1, 1)).total_seconds() / 86400.
-        else:
-            doy_sc_sensor[i] = np.nan
+    # convert day of year number
+    doy_sc_sensor = \
+        (df_sc_sensor['timestamp'] - pd.Timestamp('%s-01-01' % year_start)) / \
+        pd.Timedelta(days=1)
+
+    # doy_sc_sensor = np.zeros(df_sc_sensor.shape[0]) * np.nan
+    # for i in range(df_sc_sensor.shape[0]):
+    #     dt_str = df_sc_sensor.loc[i, 'datetime']
+    #     if len(dt_str) == 14:
+    #         # accelerate datetime parsing with manual operations
+    #         dt_converted = datetime.datetime(
+    #             int(dt_str[0:4]), int(dt_str[4:6]), int(dt_str[6:8]),
+    #             int(dt_str[8:10]), int(dt_str[10:12]), int(dt_str[12:14]))
+    #         doy_sc_sensor[i] = \
+    #             (dt_converted -
+    #                 datetime.datetime(2016, 1, 1)).total_seconds() / 86400.
+    #         # doy_sc_sensor[i] = (
+    #         #     datetime.datetime.strptime(dt_str, '%Y%m%d%H%M%S') -
+    #         #     datetime.datetime(2016, 1, 1)).total_seconds() / 86400.
+    #     else:
+    #         doy_sc_sensor[i] = np.nan
 
     # indices for insertion, range 0 to 17279
     ind_sc_sensor = (doy_sc_sensor - doy) * 86400. / 5.
-    ind_sc_sensor = np.round(ind_sc_sensor).astype(int)
+    ind_sc_sensor = np.round(ind_sc_sensor).astype(np.int64)
 
     # corrections for PAR and TC values
     # parameters from Juho Aalto <juho.aalto@helsinki.fi>, 13 April 2016
@@ -255,13 +284,13 @@ for doy in range(doy_start, doy_end):
     if doy == 242:
         break_pt = (datetime.datetime(2016, 8, 30, 13, 44, 36) -
                     datetime.datetime(2016, 1, 1)).total_seconds() / 86400.
-        df_lc_sensor.iloc[doy_lc_sensor > break_pt, 1:] = np.nan
+        df_lc_sensor.loc[doy_lc_sensor > break_pt, 1:] = np.nan
     if 242 < doy < 248:
-        df_lc_sensor.iloc[:, 1:] = np.nan
+        df_lc_sensor.loc[:, 1:] = np.nan
     if doy == 248:
         break_pt = (datetime.datetime(2016, 9, 5, 11, 22, 44) -
                     datetime.datetime(2016, 1, 1)).total_seconds() / 86400.
-        df_lc_sensor.iloc[doy_lc_sensor < break_pt, 1:] = np.nan
+        df_lc_sensor.loc[doy_lc_sensor < break_pt, 1:] = np.nan
 
     # 6. thermocouple at channel 11 (T_ch_2) was fallen during
     # 29 Aug 2016 09:00 to 12 Sep 2016 11:00
@@ -345,7 +374,7 @@ for doy in range(doy_start, doy_end):
                          label=col, lw=1.)
         axes[2].legend(loc='upper left', frameon=False, fontsize=10, ncol=3)
 
-        axes[0].set_ylabel('PAR ($\mu$mol m$^{-2}$ s$^{-1}$')
+        axes[0].set_ylabel('PAR ($\mu$mol m$^{-2}$ s$^{-1}$)')
         axes[1].set_ylabel('Temperature ($\degree$C)')
         axes[2].set_ylabel('Temperature ($\degree$C)')
         axes[2].set_xlim([0, 24])
@@ -358,9 +387,12 @@ for doy in range(doy_start, doy_end):
         fig.clf()
         del fig, axes
 
-    print('\n%d lines converted from sensor data file(s) on the day 20%s.' %
-          (df_all_sensor.shape[0], run_date_str))
-    print(df_all_sensor.describe().transpose())
+    if not args.flag_silent_mode:
+        print(
+            '\n%d lines converted from sensor data file(s) on the day 20%s.' %
+            (df_all_sensor.shape[0], run_date_str))
+        print(df_all_sensor.describe().transpose())
+
     del df_lc_sensor, df_sc_sensor, df_all_sensor
 
 

@@ -25,9 +25,12 @@ The Anaconda Distribution of Python (https://continuum.io/downloads) is recommen
 
 `hyy16_flow_data.py`: Gapfill flow data and subset by day. Optional argument is `-s`, to run in silent mode without printing daily summary.
 
+
 `hyy16_leaf_area.py`: Interpolate leaf area.
 
-`hyy16_sensor_data.py`: Reformat and filter sensor data.
+
+`hyy16_sensor_data.py`: Reformat and filter sensor data. Optional argument is `-s`, to run in silent mode without printing daily summary.
+
 
 ==**Work in progess**==
 
@@ -37,7 +40,9 @@ The Anaconda Distribution of Python (https://continuum.io/downloads) is recommen
 
 # How long it takes to run
 
-These are running times on a quad-core MacBook Pro 15'' (May 2015) model with single thread/process.
+These are running times over all 2016 data, on a quad-core MacBook Pro 15'' (May 2015) model with single thread/process.
 
 - `hyy16_fetch_smear_data.py`: ~ 10 seconds (It may also depend on the bandwidth.)
-- `hyy16_flow_data.py`: ~ 5 minutes without plots
+- `hyy16_flow_data.py`: ~ 5 minutes without plotting
+- `hyy16_leaf_area.py`: ~ 0.5 second
+- `hyy16_sensor_data.py`: ~ 90 seconds without plotting; ~ 220 seconds with plotting
