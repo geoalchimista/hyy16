@@ -9,7 +9,7 @@ data_dir = {
     '/Users/wusun/Dropbox/Projects/hyytiala_2016/data/preprocessed/flow/',
 
     'sensor_data_raw':
-    '/Users/wusun/Dropbox/Projects/hyytiala_2016/sensor_data/',
+    '/Users/wusun/Dropbox/Projects/hyytiala_2016/data/sensor_data/',
 
     'sensor_data_reformatted':
     '/Users/wusun/Dropbox/Projects/hyytiala_2016/data/preprocessed/sensor/',
@@ -31,5 +31,5 @@ run_options = {
 
     'plot_flow_data': False,
 
-    'plot_sensor_data': True,
+    'plot_sensor_data': False,
 }
