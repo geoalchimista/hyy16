@@ -22,6 +22,10 @@ data_dir = {
 
     'leaf_area_data_reformatted':
     '/Users/wusun/Dropbox/Projects/hyytiala_2016/data/preprocessed/leaf_area/',
+
+    'chflux_data':
+    '/Users/wusun/Dropbox/Projects/hyytiala_2016/data/processed/chflux/',
+    # processed chamber flux data
 }
 
 run_options = {
